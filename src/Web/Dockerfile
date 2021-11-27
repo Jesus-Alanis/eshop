@@ -1,27 +1,32 @@
-# RUN ALL CONTAINERS FROM ROOT (folder with .sln file):
-# docker-compose build
-# docker-compose up
-#
-# RUN JUST THIS CONTAINER FROM ROOT (folder with .sln file):
-# docker build --pull -t web -f src/Web/Dockerfile .
-#
-# RUN COMMAND
-#  docker run --name eshopweb --rm -it -p 5106:5106 web
+#See https://aka.ms/containerfastmode to understand how Visual Studio uses this Dockerfile to build your images for faster debugging.
+
+#Depending on the operating system of the host machines(s) that will build or run the containers, the image specified in the FROM statement may need to be changed.
+#For more information, please see https://aka.ms/containercompat
+
+FROM mcr.microsoft.com/dotnet/aspnet:5.0 AS base
+WORKDIR /app
+EXPOSE 80
+EXPOSE 443
+
 FROM mcr.microsoft.com/dotnet/sdk:5.0 AS build
-WORKDIR /app
-
-COPY *.sln .
+WORKDIR /src
+COPY ["src/Web/Web.csproj", "src/Web/"]
+COPY ["src/BlazorShared/BlazorShared.csproj", "src/BlazorShared/"]
+COPY ["src/ApplicationCore/ApplicationCore.csproj", "src/ApplicationCore/"]
+COPY ["src/Infrastructure/Infrastructure.csproj", "src/Infrastructure/"]
+COPY ["src/BlazorAdmin/BlazorAdmin.csproj", "src/BlazorAdmin/"]
+RUN dotnet restore "src/Web/Web.csproj"
 COPY . .
-WORKDIR /app/src/Web
-RUN dotnet restore
+WORKDIR "/src/src/Web"
+RUN dotnet build "Web.csproj" -c Release -o /app/build
 
-RUN dotnet publish -c Release -o out
+FROM build AS publish
+RUN dotnet publish "Web.csproj" -c Release -o /app/publish
 
-FROM mcr.microsoft.com/dotnet/aspnet:5.0 AS runtime
+FROM base AS final
 WORKDIR /app
-COPY --from=build /app/src/Web/out ./
+COPY --from=publish /app/publish .
 
 # Optional: Set this here if not setting it from docker-compose.yml
-# ENV ASPNETCORE_ENVIRONMENT Development
-
+ENV ASPNETCORE_ENVIRONMENT Development
 ENTRYPOINT ["dotnet", "Web.dll"]
