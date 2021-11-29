@@ -7,6 +7,8 @@ using Microsoft.eShopWeb.ApplicationCore.Interfaces;
 using Microsoft.eShopWeb.ApplicationCore.Specifications;
 using Microsoft.Extensions.Configuration;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -17,6 +19,7 @@ namespace Microsoft.eShopWeb.ApplicationCore.Services
         private readonly IRepository<Order> _orderRepository;
         private readonly IUriComposer _uriComposer;
         private readonly IConfiguration _configuration;
+        private readonly HttpClient _httpClient;
         private readonly IRepository<Basket> _basketRepository;
         private readonly IRepository<CatalogItem> _itemRepository;
 
@@ -24,11 +27,13 @@ namespace Microsoft.eShopWeb.ApplicationCore.Services
             IRepository<CatalogItem> itemRepository,
             IRepository<Order> orderRepository,
             IUriComposer uriComposer,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            HttpClient httpClient)
         {
             _orderRepository = orderRepository;
             _uriComposer = uriComposer;
             _configuration = configuration;
+            _httpClient = httpClient;
             _basketRepository = basketRepository;
             _itemRepository = itemRepository;
         }
@@ -66,6 +71,16 @@ namespace Microsoft.eShopWeb.ApplicationCore.Services
             await sender.SendMessageAsync(message);
 
             await _orderRepository.AddAsync(order);
+
+            var deliveryOrder = new
+            {
+                FinalPrice = order.Total(),
+                Items = order.OrderItems,
+                ShippingAddress = order.ShipToAddress
+            };
+
+            var deliveryorderUrl = _configuration.GetValue<string>("DeliveryOrderUrl");
+            await _httpClient.PostAsJsonAsync($"{deliveryorderUrl}{_configuration["DeliveryOrderKey"]}", deliveryOrder);
         }
     }
 }
