@@ -1,4 +1,3 @@
-using AutoMapper;
 using BlazorShared;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -13,7 +12,6 @@ using Microsoft.eShopWeb.ApplicationCore.Services;
 using Microsoft.eShopWeb.Infrastructure.Data;
 using Microsoft.eShopWeb.Infrastructure.Identity;
 using Microsoft.eShopWeb.Infrastructure.Logging;
-using Microsoft.eShopWeb.Infrastructure.Services;
 using Microsoft.eShopWeb.PublicApi.MiddleWares;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -67,11 +65,11 @@ namespace Microsoft.eShopWeb.PublicApi
             // Requires LocalDB which can be installed with SQL Server Express 2016
             // https://www.microsoft.com/en-us/download/details.aspx?id=54284
             services.AddDbContext<CatalogContext>(c =>
-                c.UseSqlServer(Configuration.GetConnectionString("CatalogConnection")));
+                c.UseSqlServer(Configuration["CatalogConnection"]));
 
             // Add Identity DbContext
             services.AddDbContext<AppIdentityDbContext>(options =>
-                options.UseSqlServer(Configuration.GetConnectionString("IdentityConnection")));
+                options.UseSqlServer(Configuration["IdentityConnection"]));
 
             ConfigureServices(services);
         }
@@ -97,7 +95,7 @@ namespace Microsoft.eShopWeb.PublicApi
             services.AddScoped<ITokenClaimsService, IdentityTokenClaimService>();
 
             var baseUrlConfig = new BaseUrlConfiguration();
-            Configuration.Bind(BaseUrlConfiguration.CONFIG_NAME, baseUrlConfig);            
+            Configuration.Bind(BaseUrlConfiguration.CONFIG_NAME, baseUrlConfig);
 
             services.AddMemoryCache();
 
